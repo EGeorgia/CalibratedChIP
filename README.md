@@ -18,8 +18,8 @@ Downsampling is achieved by using a 4% spike-in in ChIP.
 * macs2 v2.0.10
 * ucsctools v373
 
-### Preliminary requirements :page_with_curl:
-#### 1. Catenated genome :mouse2: :heavy_plus_sign: :family:
+### Preliminary requirements 
+#### 1. Catenated genome 
 
 Take the two genomes of interest and rename chromosomes so that thet include species: 
 
@@ -37,7 +37,7 @@ Then need to build bowtie2 index:
 
 [See instructions on Homer webpage](http://homer.ucsd.edu/homer/basicTutorial/mapping.html)
 
-#### 2. paths_to_fastqs.txt :file_folder:
+#### 2. paths_to_fastqs.txt 
 
 Needs to tab separated and without headers:
 > sampleName  pathtoRead1 pathtoRead2
