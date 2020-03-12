@@ -1,8 +1,7 @@
 # CalibratedChIP
 #### Pipeline for analysing and calibrating ChIP-seq data with spike-in genome.
 
-##### Emily Georgiades, Hughes Group
-##### March 2020
+##### Emily Georgiades, Hughes Group (March 2020)
 ***
 
 This pipeline has been re-written using scripts from Nadya Fursova (Robert Klose Lab, Biochem)
@@ -11,9 +10,16 @@ and is designed to take fastq files as input and output downsampled bigwig files
 Downsampling is achieved by using a 4% spike-in in ChIP.
 
 ***
+### Version requirements :gear:
+* Bowtie2 v2.1.0
+* Sambamba v0.6.6
+* Samtools v1.3 (using htslib 1.3)
+* Python v3.7.4
+* macs2 v2.0.10
+* ucsctools v373
 
-### PRELIMINARY REQUIREMENTS:
-#### 1. Catenated genome
+### Preliminary requirements :page_with_curl:
+#### 1. Catenated genome :mouse2: :heavy_plus_sign: :family:
 
 Take the two genomes of interest and rename chromosomes so that thet include species: 
 
@@ -31,7 +37,7 @@ Then need to build bowtie2 index:
 
 [See instructions on Homer webpage](http://homer.ucsd.edu/homer/basicTutorial/mapping.html)
 
-#### 2. paths_to_fastqs.txt
+#### 2. paths_to_fastqs.txt :file_folder:
 
 Needs to tab separated and without headers:
 > sampleName  pathtoRead1 pathtoRead2
