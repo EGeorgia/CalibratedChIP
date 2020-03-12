@@ -1,8 +1,8 @@
 # CalibratedChIP
-Pipeline for analysing and calibrating ChIP-seq data with spike-in genome.
+#### Pipeline for analysing and calibrating ChIP-seq data with spike-in genome.
 
-Emily Georgiades, Hughes Group
-March 2020
+##### Emily Georgiades, Hughes Group
+##### March 2020
 ***
 
 This pipeline has been re-written using scripts from Nadya Fursova (Robert Klose Lab, Biochem)
