@@ -22,9 +22,11 @@ Take the two genomes of interest and rename chromosomes so that thet include spe
 ```sed 's/>chr/>dm6_chr/g' /databank/igenomes/Drosophila_melanogaster/UCSC/dm6/Sequence/Bowtie2Index/genome.fa > ./dm6_genome.fa```
 
 Catenate these two genomes:
+
 ```cat /databank/igenomes/Mus_musculus/UCSC/mm10/Sequence/Bowtie2Index/genome.fa /databank/igenomes/Drosophila_melanogaster/UCSC/dm6/Sequence/Bowtie2Index/genome.fa > catenated_mm10_dm6.fa &```
 
 Then need to build bowtie2 index:
+
 ```bowtie2-build /path/concatenated.fa output_prefix```
 
 [See instructions on Homer webpage](http://homer.ucsd.edu/homer/basicTutorial/mapping.html)
