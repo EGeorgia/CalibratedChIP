@@ -55,7 +55,7 @@ echo "SAMPLE TOTAL_READS GENOME_READS SPIKEIN_READS" >> readCounts.txt
 
 mkdir outputBams
 
-for file in ./paths_to_fastqs.txt
+for file in ${INPUT_FASTQS}
 do
   columns=$(awk '{print NF}' $file | sort -nu | tail -n 1)
   read_num=$(($columns-1))
@@ -69,6 +69,7 @@ do
       FASTQ2="${READ2}"
 
       echo "Processing sample: ${SAMPLE}."
+      echo ""
       echo "FASTQ1 located here: ${FASTQ1}"
       echo "FASTQ2 located here: ${FASTQ2}"
 
@@ -77,7 +78,6 @@ do
       bowtie2 -x ${BT2DIR} -1 ${FASTQ1} -2 ${FASTQ2} -p 56 --no-mixed --no-discordant| grep -v XS: - | samtools view -b -h -S -F4 - > ./outputBams/${SAMPLE}\_UniqMapped.bam
       sambamba sort  -t 56 -m 60G -o ./outputBams/${SAMPLE}\_UniqMapped_sorted.bam ./outputBams/${SAMPLE}\_UniqMapped.bam
       sambamba markdup -r -t 56 ./outputBams/${SAMPLE}\_UniqMapped_sorted.bam ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam
-      echo ""
       echo "Extracting reads aligning uniquely to ${GENOME}"
       samtools view -h ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam | grep -v ${SPIKEIN} | sed s/${GENOME}\_chr/chr/g | samtools view -bhS - > ./outputBams/${SAMPLE}\_${GENOME}.UniqMapped_sorted_rmdup.bam
       echo "Extracting reads aligning uniquely to ${SPIKEIN}."
@@ -100,11 +100,8 @@ do
       echo "Number of reads aligning to ${GENOME} is ${GENOMECOUNT}"
       SPIKEGENOMECOUNT=$(sambamba view -c -t 50 ./outputBams/${SAMPLE}\_${SPIKEIN}.UniqMapped_sorted_rmdup.bam)
       echo "Number of reads aligning to ${SPIKEIN} is ${SPIKEGENOMECOUNT}"
-
-      echo ""
       echo "${SAMPLE} ${COUNT} ${GENOMECOUNT} ${SPIKEGENOMECOUNT}" >> readCounts.txt
-      echo "Written ${SAMPLE} read counts to ./readCounts.txt"
-
+      echo "---------------------------"
     done < "${INPUT_FASTQS}"
 
   elif [[ $read_num = "1" ]]; then
@@ -115,14 +112,13 @@ do
       FASTQ="${READ}"
 
       echo "Processing sample: ${SAMPLE}."
+      echo ""
       echo "FASTQ located here: ${FASTQ}"
-
       echo ""
       echo "Aligning to concatenated genome file..."
       bowtie2 -x ${BT2DIR} -U ${FASTQ} -p 56 --no-mixed --no-discordant| grep -v XS: - | samtools view -b -h -S -F4 - > ./outputBams/${SAMPLE}\_UniqMapped.bam
       sambamba sort  -t 56 -m 60G -o ./outputBams/${SAMPLE}\_UniqMapped_sorted.bam ./outputBams/${SAMPLE}\_UniqMapped.bam
       sambamba markdup -r -t 56 ./outputBams/${SAMPLE}\_UniqMapped_sorted.bam ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam
-      echo ""
       echo "Extracting reads aligning uniquely to ${GENOME}"
       samtools view -h ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam | grep -v ${SPIKEIN} | sed s/${GENOME}\_chr/chr/g | samtools view -bhS - > ./outputBams/${SAMPLE}\_${GENOME}.UniqMapped_sorted_rmdup.bam
       echo "Extracting reads aligning uniquely to ${SPIKEIN}."
@@ -145,11 +141,9 @@ do
       echo "Number of reads aligning to ${GENOME} is ${GENOMECOUNT}"
       SPIKEGENOMECOUNT=$(sambamba view -c -t 50 ./outputBams/${SAMPLE}\_${SPIKEIN}.UniqMapped_sorted_rmdup.bam)
       echo "Number of reads aligning to ${SPIKEIN} is ${SPIKEGENOMECOUNT}"
-
-      echo ""
       echo "${SAMPLE} ${COUNT} ${GENOMECOUNT} ${SPIKEGENOMECOUNT}" >> readCounts.txt
       echo "Written ${SAMPLE} read counts to ./readCounts.txt"
-
+      echo "---------------------------"
     done < "${INPUT_FASTQS}"
   else
     echo "Error! paths_to_fastqs.txt file incorrectly formatted"
@@ -160,6 +154,7 @@ done
 
 echo ""
 echo "Cleaning up..."
+echo ""
 rm ./outputBams/*\_UniqMapped.bam
 rm ./outputBams/*\_UniqMapped_sorted.bam
 rm ./outputBams/*\_UniqMapped_sorted.bam.bai
@@ -189,7 +184,7 @@ do
   echo ""
   echo "Creating downsampled bam for ${sample_name} in ${GENOME} genome"
   sambamba view -h -t 56 -f bam --subsampling-seed=123 -s ${downsample_factor} ./outputBams/${sample_name}\_${GENOME}.UniqMapped_sorted_rmdup.bam -o ./outputBams/${sample_name}\_${GENOME}\_downsampled.bam
-  echo "Indexing downsampled bam"
+  echo "Indexing downsampled bam..."
   sambamba index -t 56 ./outputBams/${sample_name}\_${GENOME}\_downsampled.bam
 
   DOWNSAMP_COUNT=$(sambamba view -c -t 56 ./outputBams/${sample_name}\_${GENOME}\_downsampled.bam)
@@ -198,7 +193,7 @@ do
   echo ""
   echo "Creating downsampled bam for ${sample_name} in ${SPIKEIN} genome"
   sambamba view -h -t 56 -f bam --subsampling-seed=123 -s ${downsample_factor} ./outputBams/${sample_name}\_${SPIKEIN}.UniqMapped_sorted_rmdup.bam -o ./outputBams/${sample_name}\_${SPIKEIN}\_downsampled.bam
-  echo "Indexing downsampled bam"
+  echo "Indexing downsampled bam..."
   sambamba index -t 56 ./outputBams/${sample_name}\_${SPIKEIN}\_downsampled.bam
 
   DOWNSAMP_COUNT=$(sambamba view -c -t 56 ./outputBams/${sample_name}\_${SPIKEIN}\_downsampled.bam)
@@ -206,7 +201,7 @@ do
 
 done < "${DOWNSAMPLING}"
 echo ""
-echo "Downsampling complete"
+echo "Downsampling complete!"
 
 #---------------------------------------------------------------------------
 # Step 3:
@@ -220,9 +215,9 @@ echo ""
 cd outputBams
 for bamfile in *_downsampled.bam
 do
-  IFS="\_" read -r  x1 x2 x3 replicate genome type  <<< "$bamfile"
-  sample_name="${x1}_${x2}_${x3}"
-  replicate="${replicate}"
+  IFS="\_" read -r  chip celltype condition genome type  <<< "$bamfile"
+  sample_name="${chip}_${celltype}"
+  replicate="${condition}"
   genome="${genome}"
   type="${type}"
   echo "Sample: ${sample_name}_${replicate}_${genome}"
@@ -232,7 +227,7 @@ do
     wigToBigWig -clip ${sample_name}\_${replicate}\_${genome}\_downsampled.bg ../sampleData/${genome}.chrom.sizes ${sample_name}\_${replicate}\_${genome}\_downsampled.bw > /dev/null 2>&1
     rm ${sample_name}\_${replicate}\_${genome}\_downsampled.bg
 
-  elif [[${READ_TYPE} = "paired"]];then
+  elif [[ $READ_TYPE = "paired" ]];then
     echo "Analysing paired-end reads."
     macs2 callpeak -t ${bamfile} -f BAMPE -g mm --bdg -n ${sample_name}\_${replicate}\_${genome} --tempdir /data/tmp/ > /dev/null 2>&1
     wigToBigWig -clip ${sample_name}\_treat_pileup.bdg ../sampleData/${genome}.chrom.sizes > /dev/null 2>&1 ${sample_name}\_${replicate}\_${genome}\_downsampled.bw
@@ -250,8 +245,7 @@ do
   echo "Copying bigwigs to public folder"
   cp *.bw ${public_dir}
   echo "Generating UCSC custom track:"
-  echo "track type=bigWig name=\"${sample_name}_${replicate}_${genome}\" description=\"Calib.ChIP ${sample_name}_${replicate}_${genome}\""
-  echo "bigDataUrl=http://sara.molbiol.ox.ac.uk/public/egeorgia/RAPID-release/CalibratedChIP//${sample_name}_${replicate}_${genome}.bw"
+  echo "track type=bigWig name=\"${sample_name}_${replicate}_${genome}\" description=\"Calib.ChIP ${sample_name}_${replicate}_${genome}\" bigDataUrl=http://sara.molbiol.ox.ac.uk/public/egeorgia/RAPID-release/CalibratedChIP//${sample_name}_${replicate}_${genome}_downsampled.bw"
   echo ""
   echo ""
 
@@ -260,6 +254,11 @@ cd ..
 
 echo "Copy and paste UCSC urls to view bigwigs in UCSC"
 echo "If happy with replicates: merge replicate bams and create new bigwigs"
+echo ""
+echo "Cleaning up..."
+rm ./outputBams/*\_rmdup.bam
+rm ./outputBams/*\_rmdup.bam.bai
+rm ./outputBams/*\_downsampled.bam.bai
 echo ""
 echo "RUN SUCCESSFUL!"
 end="$(date)"
