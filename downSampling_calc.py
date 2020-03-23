@@ -17,14 +17,15 @@ cols = read_counts.columns.tolist()
 cols = cols[-1:] + cols[:-1]
 read_counts = read_counts[cols]
 # Filter for the rows containing ChIP samples (rather than inputs controls)
-sample_counts = read_counts[~read_counts['SAMPLE'].str.contains("Input")]
+# Input samples must have "input" in sample name. 
+sample_counts = read_counts[~read_counts['SAMPLE'].str.contains("input")]
 sample_counts['RATIO_MM10_UNIQ'] = sample_counts['GENOME_READS']/sample_counts['TOTAL_READS']
 sample_counts['RATIO_DM6_UNIQ'] = sample_counts['SPIKEIN_READS']/sample_counts['TOTAL_READS']
 sample_counts['RATIO_DM6vMM10'] = sample_counts['SPIKEIN_READS']/sample_counts['GENOME_READS']
 sample_counts['DM6_NORM'] = min(sample_counts['SPIKEIN_READS'])/sample_counts['SPIKEIN_READS'] # will need to change when have more data
 
 # Filter for the rows containing input controls
-input_counts = read_counts[read_counts['SAMPLE'].str.contains("Input")]
+input_counts = read_counts[read_counts['SAMPLE'].str.contains("input")]
 input_counts['RATIO_MM10_UNIQ'] = input_counts['GENOME_READS']/input_counts['TOTAL_READS']
 input_counts['RATIO_DM6_UNIQ'] = input_counts['SPIKEIN_READS']/input_counts['TOTAL_READS']
 input_counts['RATIO_DM6vMM10'] = input_counts['SPIKEIN_READS']/input_counts['GENOME_READS']
