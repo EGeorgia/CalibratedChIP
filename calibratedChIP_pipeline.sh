@@ -37,6 +37,7 @@ INPUT_FASTQS="./paths_to_fastqs.txt"
 start="$(date)"
 
 module load ucsctools
+module load bowtie2/2.3.5
 
 echo ""
 echo "CALIBRATED CHIP-SEQ"
