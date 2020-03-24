@@ -42,6 +42,12 @@ Then need to build bowtie2 index:
 Needs to tab separated and without headers:
 > sampleName  pathtoRead1 pathtoRead2
 
+### 3. chrom.size files
+
+These need to be saved in the same directory as the bowtie2 indexing.
+
+They can be downloaded from UCSC e.g. [hg19.chrom.sizes](https://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/)
+
 ***
 
 ### SUMMARY

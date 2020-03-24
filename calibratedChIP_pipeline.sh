@@ -225,13 +225,13 @@ do
   if [[ $READ_TYPE = "single" ]]; then
     echo "Analysing single-end reads."
     macs2 pileup -i ${bamfile} -f BAM -o ${sample_name}\_${replicate}\_${genome}\_downsampled.bg > /dev/null 2>&1
-    wigToBigWig -clip ${sample_name}\_${replicate}\_${genome}\_downsampled.bg ../sampleData/${genome}.chrom.sizes ${sample_name}\_${replicate}\_${genome}\_downsampled.bw > /dev/null 2>&1
+    wigToBigWig -clip ${sample_name}\_${replicate}\_${genome}\_downsampled.bg ${BT2DIR}${genome}.chrom.sizes ${sample_name}\_${replicate}\_${genome}\_downsampled.bw > /dev/null 2>&1
     rm ${sample_name}\_${replicate}\_${genome}\_downsampled.bg
 
   elif [[ $READ_TYPE = "paired" ]];then
     echo "Analysing paired-end reads."
     macs2 callpeak -t ${bamfile} -f BAMPE -g mm --bdg -n ${sample_name}\_${replicate}\_${genome} --tempdir /data/tmp/ > /dev/null 2>&1
-    wigToBigWig -clip ${sample_name}\_treat_pileup.bdg ../sampleData/${genome}.chrom.sizes > /dev/null 2>&1 ${sample_name}\_${replicate}\_${genome}\_downsampled.bw
+    wigToBigWig -clip ${sample_name}\_treat_pileup.bdg ${BT2DIR}${genome}.chrom.sizes > /dev/null 2>&1 ${sample_name}\_${replicate}\_${genome}\_downsampled.bw
   	rm ${sample_name}\_${replicate}\_${genome}\_control_lambda.bdg
   	rm ${sample_name}\_${replicate}\_${genome}\_peaks.narrowPeak
   	rm ${sample_name}\_${replicate}\_${genome}\_peaks.xls
