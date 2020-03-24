@@ -8,16 +8,20 @@
 
 import pandas as pd
 import warnings
+import re
 warnings.filterwarnings('ignore')
 
 # Load the textfile containing read counts:
 read_counts = pd.read_csv('./readCounts.txt', sep=' ')
-read_counts['REPLICATE'] = read_counts['SAMPLE'].str.extract('rep(\d+)', expand = False)
+rep = []
+for i in read_counts['SAMPLE']:
+    rep.append(re.sub('\.input$', '', i))
+read_counts['REPLICATE'] = rep
 cols = read_counts.columns.tolist()
 cols = cols[-1:] + cols[:-1]
 read_counts = read_counts[cols]
 # Filter for the rows containing ChIP samples (rather than inputs controls)
-# Input samples must have "input" in sample name. 
+# Input samples must have "input" in sample name.
 sample_counts = read_counts[~read_counts['SAMPLE'].str.contains("input")]
 sample_counts['RATIO_MM10_UNIQ'] = sample_counts['GENOME_READS']/sample_counts['TOTAL_READS']
 sample_counts['RATIO_DM6_UNIQ'] = sample_counts['SPIKEIN_READS']/sample_counts['TOTAL_READS']
