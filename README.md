@@ -64,6 +64,8 @@ For help see: ```$ bash -h calibratedChIP_pipeline.sh```
 
 ### SnakeMake
 To run the above pipeline using SnakeMake:
+
+```
 ├── Snakefile
 ├── config.yaml
 ├── data
@@ -88,4 +90,4 @@ To run the above pipeline using SnakeMake:
 │       └── 02_F9_HEK293_READ2.fastq.gz
 └── envs
     └── mapping.yaml
-
+```
