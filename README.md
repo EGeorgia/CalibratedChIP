@@ -59,3 +59,33 @@ You should have a new directory containing the following:
 Run: ```$ bash calibratedChIP_pipeline.sh -g genome -s spike-in genome -b bt2_dir -p path/public_dir```
 
 For help see: ```$ bash -h calibratedChIP_pipeline.sh```
+
+***
+
+### SnakeMake
+To run the above pipeline using SnakeMake:
+├── Snakefile
+├── config.yaml
+├── data
+│   ├── bowtie2
+│   │   ├── hg19.mm10.1.bt2l
+│   │   ├── hg19.mm10.2.bt2l
+│   │   ├── hg19.mm10.3.bt2l
+│   │   ├── hg19.mm10.4.bt2l
+│   │   ├── hg19.mm10.rev.1.bt2l
+│   │   └── hg19.mm10.rev.2.bt2l
+│   ├── genomes
+│   │   ├── catenated_hg19_mm10.fa
+│   │   ├── hg19.chrom.sizes
+│   │   └── mm10.chrom.sizes
+│   ├── outputBams
+│   │   └── DIRECTORY WILL BE POPULATED
+│   ├── outputFiles
+│   └── samples
+│       ├── 01_WT_HEK293_READ1.fastq.gz
+│       ├── 01_WT_HEK293_READ2.fastq.gz
+│       ├── 02_F9_HEK293_READ1.fastq.gz
+│       └── 02_F9_HEK293_READ2.fastq.gz
+└── envs
+    └── mapping.yaml
+
