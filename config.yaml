@@ -1,0 +1,10 @@
+samples:
+  - 01_WT_HEK293
+  - 02_F9_HEK293
+
+bt2Prefix:
+  - hg19.mm10
+genome:
+  - hg19
+spikein:
+  - mm10
