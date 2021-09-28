@@ -1,0 +1,18 @@
+### .gitignore
+
+# Directories
+Snakemake/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# OS generated files #
+.DS_Store?
+._*
