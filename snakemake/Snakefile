@@ -1,0 +1,127 @@
+"""
+Snakemake workflow to process Calibrated ChIP-seq data.
+Author: Emily Georgiades
+Hughes Group, University of Oxford
+March 2020
+"""
+
+configfile: "config.yaml"
+ruleorder:
+    uniqAlignGen > uniqAlignSpi > indexing_genome > indexing_spikein > counting_gen > counting_spi
+
+#IDS, = glob_wildcards("data/outputBams/{id}.bam")
+
+rule all: # contains all final outputs as inputs
+    input:
+        #expand("data/outputFiles/{sample}_readcount.txt",sample=config["samples"]),
+        expand("data/outputFiles/{sample}_mm10_readcount.txt",sample=config["samples"]),
+        expand("data/outputFiles/{sample}_hg19_readcount.txt",sample=config["samples"])
+        #expand("data/outputFiles/ALLreadcount_{sample}.txt",sample=config["samples"])
+rule bamming:
+    input:
+        READ1="data/samples/{sample}_READ1.fastq.gz",
+        READ2="data/samples/{sample}_READ2.fastq.gz"
+    params:
+        bt2=config["bt2Prefix"]
+    output:
+        temp("data/outputBams/{sample}_UniqMapped.bam")
+    conda:
+        "envs/mapping.yaml"
+    shell:
+        "bowtie2 -x data/bowtie2/{params.bt2} -1 {input.READ1} -2 {input.READ2} -p 56 --no-mixed --no-discordant |"
+        "grep -v XS: - |"
+        "samtools view -b -h -S -F4 > {output}"
+
+rule sorting:
+    input:
+        "data/outputBams/{sample}_UniqMapped.bam"
+    output:
+        temp("data/outputBams/{sample}_UniqMapped_sorted.bam"),
+        temp("data/outputBams/{sample}_UniqMapped_sorted.bam.bai")
+    conda:
+        "envs/mapping.yaml"
+    shell:
+        "sambamba sort  -t 56 -m 60G -o {output} {input}"
+
+rule remove_duplicates:
+    input:
+        "data/outputBams/{sample}_UniqMapped_sorted.bam"
+    output:
+        "data/outputBams/{sample}_UniqMapped_sorted_rmdup.bam",
+        temp("data/outputBams/{sample}_UniqMapped_sorted_rmdup.bam.bai")
+    conda:
+        "envs/mapping.yaml"
+    shell:
+        "sambamba markdup -r -t 56 {input} {output}"
+
+rule uniqAlignGen:
+    input:
+        "data/outputBams/{sample}_UniqMapped_sorted_rmdup.bam"
+    params:
+        genome = "hg19",
+        spikein = "mm10"
+    output:
+        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_hg19.bam"
+    shell:
+        "samtools view -h {input} |"
+        "grep -v {params.spikein} | sed s/{params.genome}\_chr/chr/g |"
+        "samtools view -bhS - > {output}"
+
+rule uniqAlignSpi:
+    input:
+        "data/outputBams/{sample}_UniqMapped_sorted_rmdup.bam"
+    params:
+        genome = "hg19",
+        spikein = "mm10"
+    output:
+        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_mm10.bam"
+    shell:
+        "samtools view -h {input} |"
+        "grep -v {params.genome} | sed s/{params.spikein}\_chr/chr/g |"
+        "samtools view -bhS - > {output}"
+
+rule indexing_genome:
+    input:
+        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_hg19.bam"
+    output:
+        temp("data/outputBams/{sample}_UniqMapped_sorted_rmdup_hg19.bam.bai")
+    shell:
+        "sambamba index -t 56 {input}"
+
+rule indexing_spikein:
+    input:
+        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_mm10.bam"
+    output:
+        temp("data/outputBams/{sample}_UniqMapped_sorted_rmdup_mm10.bam.bai")
+    shell:
+        "sambamba index -t 56 {input}"
+
+# rule counting:
+#     input:
+#         "data/outputBams/{sample}_UniqMapped_sorted_rmdup.bam",
+#         "data/outputBams/{sample}_UniqMapped_sorted_rmdup_hg19.bam",
+#         "data/outputBams/{sample}_UniqMapped_sorted_rmdup_mm10.bam"
+#     output:
+#         "data/outputFiles/ALLreadcount.txt"
+#     run:
+#         for file in input:
+#             echo "$file"
+#             # count=$(sambamba view -c -t 50 file)
+#             # with open(output, "w") as out:
+#             #     out.write($count)
+# "echo $count > {output}"
+rule counting_gen:
+    input:
+        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_hg19.bam"
+    output:
+        "data/outputFiles/{sample}_hg19_readcount.txt"
+    shell:
+        "sambamba view -c -t 50 {input} >> {output}"
+
+rule counting_spi:
+    input:
+        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_mm10.bam"
+    output:
+        "data/outputFiles/{sample}_mm10_readcount.txt"
+    shell:
+        "sambamba view -c -t 50 {input} >> {output}"
