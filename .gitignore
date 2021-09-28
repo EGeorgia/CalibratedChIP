@@ -1,7 +1,7 @@
 ### .gitignore
 
 # Directories
-Snakemake/
+Snakemake/data/
 
 # Environments
 .env
