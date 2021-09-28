@@ -1,7 +1,6 @@
 ### .gitignore
 
 # Directories
-Snakemake/data/
 
 # Environments
 .env
@@ -13,6 +12,6 @@ ENV/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# OS generated files #
+# OS generated files 
 .DS_Store?
 ._*
