@@ -1,10 +1,12 @@
 samples:
-  - 01_WT_HEK293
-  - 02_F9_HEK293
+  - 1hr_mES-E14_RAD21-FLAG_rep1
+  - 1hr_mES-E14_RAD21-FLAG_rep2
 
 bt2Prefix:
-  - hg19.mm10
+  - mm39.hg38
+
 genome:
-  - hg19
+  - mm39
+
 spikein:
-  - mm10
+  - hg38

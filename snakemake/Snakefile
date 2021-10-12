@@ -2,7 +2,7 @@
 Snakemake workflow to process Calibrated ChIP-seq data.
 Author: Emily Georgiades
 Hughes Group, University of Oxford
-March 2020
+October 2021
 """
 
 configfile: "config.yaml"
@@ -14,13 +14,14 @@ ruleorder:
 rule all: # contains all final outputs as inputs
     input:
         #expand("data/outputFiles/{sample}_readcount.txt",sample=config["samples"]),
-        expand("data/outputFiles/{sample}_mm10_readcount.txt",sample=config["samples"]),
-        expand("data/outputFiles/{sample}_hg19_readcount.txt",sample=config["samples"])
+        expand("data/outputFiles/{sample}_{spikein}_readcount.txt",sample=config["samples"],spikein=config["spikein"]),
+        expand("data/outputFiles/{sample}_{genome}_readcount.txt",sample=config["samples"], genome=config["genome"])
         #expand("data/outputFiles/ALLreadcount_{sample}.txt",sample=config["samples"])
+
 rule bamming:
     input:
-        READ1="data/samples/{sample}_READ1.fastq.gz",
-        READ2="data/samples/{sample}_READ2.fastq.gz"
+        READ1="data/samples/{sample}_R1.fastq.gz",
+        READ2="data/samples/{sample}_R2.fastq.gz"
     params:
         bt2=config["bt2Prefix"]
     output:
@@ -58,10 +59,10 @@ rule uniqAlignGen:
     input:
         "data/outputBams/{sample}_UniqMapped_sorted_rmdup.bam"
     params:
-        genome = "hg19",
-        spikein = "mm10"
+        genome = config["genome"],
+        spikein = config["spikein"]
     output:
-        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_hg19.bam"
+        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_{genome}.bam"
     shell:
         "samtools view -h {input} |"
         "grep -v {params.spikein} | sed s/{params.genome}\_chr/chr/g |"
@@ -71,10 +72,10 @@ rule uniqAlignSpi:
     input:
         "data/outputBams/{sample}_UniqMapped_sorted_rmdup.bam"
     params:
-        genome = "hg19",
-        spikein = "mm10"
+        genome = config["genome"],
+        spikein = config["spikein"]
     output:
-        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_mm10.bam"
+        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_{spikein}.bam"
     shell:
         "samtools view -h {input} |"
         "grep -v {params.genome} | sed s/{params.spikein}\_chr/chr/g |"
@@ -82,46 +83,51 @@ rule uniqAlignSpi:
 
 rule indexing_genome:
     input:
-        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_hg19.bam"
+        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_{genome}.bam"
+    params:
+        genome = config["genome"]
     output:
-        temp("data/outputBams/{sample}_UniqMapped_sorted_rmdup_hg19.bam.bai")
+        temp("data/outputBams/{sample}_UniqMapped_sorted_rmdup_{genome}.bam.bai")
     shell:
         "sambamba index -t 56 {input}"
 
 rule indexing_spikein:
     input:
-        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_mm10.bam"
+        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_{spikein}.bam"
+    params:
+        spikein = config["spikein"]
     output:
-        temp("data/outputBams/{sample}_UniqMapped_sorted_rmdup_mm10.bam.bai")
+        temp("data/outputBams/{sample}_UniqMapped_sorted_rmdup_{spikein}.bam.bai")
     shell:
         "sambamba index -t 56 {input}"
 
-# rule counting:
-#     input:
-#         "data/outputBams/{sample}_UniqMapped_sorted_rmdup.bam",
-#         "data/outputBams/{sample}_UniqMapped_sorted_rmdup_hg19.bam",
-#         "data/outputBams/{sample}_UniqMapped_sorted_rmdup_mm10.bam"
-#     output:
-#         "data/outputFiles/ALLreadcount.txt"
-#     run:
+rule counting:
+    input:
+         "data/outputBams/{sample}_UniqMapped_sorted_rmdup.bam",
+         "data/outputBams/{sample}_UniqMapped_sorted_rmdup_{spikein}.bam",
+         "data/outputBams/{sample}_UniqMapped_sorted_rmdup_{genome}.bam"
+    output:
+         "data/outputFiles/ALLreadcount.txt"
+#    run:
 #         for file in input:
 #             echo "$file"
-#             # count=$(sambamba view -c -t 50 file)
-#             # with open(output, "w") as out:
-#             #     out.write($count)
-# "echo $count > {output}"
+#             count=$(sambamba view -c -t 50 file)
+#             with open(output, "w") as out:
+#                 out.write($count)
+#                 "echo $count > {output}"
+
 rule counting_gen:
     input:
-        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_hg19.bam"
+        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_{genome}.bam"
     output:
-        "data/outputFiles/{sample}_hg19_readcount.txt"
+        "data/outputFiles/{sample}_{genome}_readcount.txt"
     shell:
         "sambamba view -c -t 50 {input} >> {output}"
 
 rule counting_spi:
     input:
-        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_mm10.bam"
+        "data/outputBams/{sample}_UniqMapped_sorted_rmdup_{spikein}.bam"
     output:
-        "data/outputFiles/{sample}_mm10_readcount.txt"
+        "data/outputFiles/{sample}_{spikein}_readcount.txt"
     shell:
         "sambamba view -c -t 50 {input} >> {output}"

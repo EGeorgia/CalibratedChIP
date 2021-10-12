@@ -2,6 +2,12 @@
 
 # Directories
 
+# Snakemake
+.snakemake
+/snakemake/data/
+/snakemake/*png
+
+
 # Environments
 .env
 .venv

@@ -10,22 +10,25 @@
 # ucsctools v373
 
 # Emily Georgiades, February 2020.
+# Modifications: September 2021
 #---------------------------------------------------------------------------
 #!/bin/bash
 
 # Specify parameters:
 usage() { echo "$0 usage:" && grep " .)\ #" $0; exit 0; }
 [ $# -eq 0 ] && usage
-while getopts ":g:s:b:p:" arg; do
+while getopts ":g:s:b:p:i" arg; do
   case $arg in
-    g) # Specify genome build (e.g. mm10).
+    g) # Specify genome build (e.g. mm39).
       GENOME=${OPTARG};;
-    s) # Specify spike-in genome build (e.g. dm6)
+    s) # Specify spike-in genome build (e.g. hg38)
       SPIKEIN=${OPTARG};;
-    b) # Give path to directory containing bt2 files include prefix (e.g. ./Bowtie2_mm10.dm6/mm10.dm6)
+    b) # Give path to directory containing bt2 files include prefix (e.g. ./Bowtie2_mm39.hg38/mm39.hg38)
       BT2DIR=${OPTARG};;
     p) # Give path to public directory where bigwigs will be saved.
       public_dir=${OPTARG};;
+    i) # Specify whether the project contains input samples (if so will be needed for each sample)
+      input_sample=${OPTARG};;
     h) # Display help.
       usage
       exit 0
@@ -37,7 +40,9 @@ INPUT_FASTQS="./paths_to_fastqs.txt"
 start="$(date)"
 
 module load ucsctools
-module load bowtie2/2.3.5
+module load bowtie2
+module load samtools
+module load sambamba
 
 echo ""
 echo "CALIBRATED CHIP-SEQ"
@@ -153,12 +158,12 @@ done
 
 
 
-echo ""
-echo "Cleaning up..."
-echo ""
-rm ./outputBams/*\_UniqMapped.bam
-rm ./outputBams/*\_UniqMapped_sorted.bam
-rm ./outputBams/*\_UniqMapped_sorted.bam.bai
+# echo ""
+# echo "Cleaning up..."
+# echo ""
+# rm ./outputBams/*\_UniqMapped.bam
+# rm ./outputBams/*\_UniqMapped_sorted.bam
+# rm ./outputBams/*\_UniqMapped_sorted.bam.bai
 
 #---------------------------------------------------------------------------
 # Step 2:
@@ -171,13 +176,16 @@ echo "---------------------------"
 
 echo ""
 echo "Proceeding with downsampling calculations..."
-python ./downSampling_calc.py
+
+# Need to specify whether input samples are included or not using -i.
+python ./downSampling_calc.py -i ${input_sample}
+
 echo "Running ./downSampling_calc.py to create downsamplingCalculations.txt"
 echo "Downsampling ratios calculated."
 
 DOWNSAMPLING="./downsamplingCalculations.txt"
 
-while IFS=$'\t' read -r REPLICATE SAMPLE_NAME TOTAL_READS GENOME_READS SPIKEIN_READS RATIO_MM10_UNIQ RATIO_DM6_UNIQ RATIO_DM6vMM10 DM6_NORM INPUT_RATIO DOWNSAMPLE_FRACTION DOWNSAMPLE_FACTOR READS_POST_DOWNSAMPLE
+while IFS=$'\t' read -r REPLICATE SAMPLE_NAME TOTAL_READS GENOME_READS SPIKEIN_READS RATIO_MM39_UNIQ RATIO_hg38_UNIQ RATIO_HG38vMM39 HG38_NORM INPUT_RATIO DOWNSAMPLE_FRACTION DOWNSAMPLE_FACTOR READS_POST_DOWNSAMPLE
 do
   downsample_factor="${DOWNSAMPLE_FACTOR}"
   sample_name="${SAMPLE_NAME}"
@@ -204,63 +212,63 @@ done < "${DOWNSAMPLING}"
 echo ""
 echo "Downsampling complete!"
 
-#---------------------------------------------------------------------------
-# Step 3:
-# Convert downsampled bams to bigwigs and view in UCSC.
-#---------------------------------------------------------------------------
-echo "---------------------------"
-echo "STEP 3"
-echo "---------------------------"
-echo "Creating downsampled bigwigs for each sample..."
-echo ""
-cd outputBams
-for bamfile in *_downsampled.bam
-do
-  IFS="\_" read -r  chip celltype condition genome type  <<< "$bamfile"
-  sample_name="${chip}_${celltype}"
-  replicate="${condition}"
-  genome="${genome}"
-  type="${type}"
-  echo "Sample: ${sample_name}_${replicate}_${genome}"
-  if [[ $READ_TYPE = "single" ]]; then
-    echo "Analysing single-end reads."
-    macs2 pileup -i ${bamfile} -f BAM -o ${sample_name}\_${replicate}\_${genome}\_downsampled.bg
-    wigToBigWig -clip ${sample_name}\_${replicate}\_${genome}\_downsampled.bg ${BT2DIR}${genome}.chrom.sizes ${sample_name}\_${replicate}\_${genome}\_downsampled.bw 
-    rm ${sample_name}\_${replicate}\_${genome}\_downsampled.bg
-
-  elif [[ $READ_TYPE = "paired" ]];then
-    echo "Analysing paired-end reads."
-    macs2 callpeak -t ${bamfile} -f BAMPE -g mm --bdg -n ${sample_name}\_${replicate}\_${genome}
-    wigToBigWig -clip ${sample_name}\_treat_pileup.bdg ${BT2DIR}${genome}.chrom.sizes >  ${sample_name}\_${replicate}\_${genome}\_downsampled.bw
-  	rm ${sample_name}\_${replicate}\_${genome}\_control_lambda.bdg
-  	rm ${sample_name}\_${replicate}\_${genome}\_peaks.narrowPeak
-  	rm ${sample_name}\_${replicate}\_${genome}\_peaks.xls
-  	rm ${sample_name}\_${replicate}\_${genome}\_summits.bed
-  	rm ${sample_name}\_${replicate}\_${genome}\_treat_pileup.bdg
-
-  else
-    echo "Error! Unrecognised read type. Should be either 'single' or 'paired'"
-
-  fi
-
-  echo "Copying bigwigs to public folder"
-  cp *.bw ${public_dir}
-  echo "Generating UCSC custom track:"
-  echo "track type=bigWig name=\"${sample_name}_${replicate}_${genome}\" description=\"Calib.ChIP ${sample_name}_${replicate}_${genome}\" bigDataUrl=http://sara.molbiol.ox.ac.uk/public/egeorgia/RAPID-release/CalibratedChIP//${sample_name}_${replicate}_${genome}_downsampled.bw"
-  echo ""
-  echo ""
-
-done
-cd ..
-
-echo "Copy and paste UCSC urls to view bigwigs in UCSC"
-echo "If happy with replicates: merge replicate bams and create new bigwigs"
-echo ""
-echo "Cleaning up..."
-rm ./outputBams/*\_rmdup.bam
-rm ./outputBams/*\_rmdup.bam.bai
-rm ./outputBams/*\_downsampled.bam.bai
-echo ""
+# #---------------------------------------------------------------------------
+# # Step 3:
+# # Convert downsampled bams to bigwigs and view in UCSC.
+# #---------------------------------------------------------------------------
+# echo "---------------------------"
+# echo "STEP 3"
+# echo "---------------------------"
+# echo "Creating downsampled bigwigs for each sample..."
+# echo ""
+# cd outputBams
+# for bamfile in *_downsampled.bam
+# do
+#   IFS="\_" read -r  chip celltype condition genome type  <<< "$bamfile"
+#   sample_name="${chip}_${celltype}"
+#   replicate="${condition}"
+#   genome="${genome}"
+#   type="${type}"
+#   echo "Sample: ${sample_name}_${replicate}_${genome}"
+#   if [[ $READ_TYPE = "single" ]]; then
+#     echo "Analysing single-end reads."
+#     macs2 pileup -i ${bamfile} -f BAM -o ${sample_name}\_${replicate}\_${genome}\_downsampled.bg
+#     wigToBigWig -clip ${sample_name}\_${replicate}\_${genome}\_downsampled.bg ${BT2DIR}${genome}.chrom.sizes ${sample_name}\_${replicate}\_${genome}\_downsampled.bw
+#     rm ${sample_name}\_${replicate}\_${genome}\_downsampled.bg
+#
+#   elif [[ $READ_TYPE = "paired" ]];then
+#     echo "Analysing paired-end reads."
+#     macs2 callpeak -t ${bamfile} -f BAMPE -g mm --bdg -n ${sample_name}\_${replicate}\_${genome}
+#     wigToBigWig -clip ${sample_name}\_treat_pileup.bdg ${BT2DIR}${genome}.chrom.sizes >  ${sample_name}\_${replicate}\_${genome}\_downsampled.bw
+#   	rm ${sample_name}\_${replicate}\_${genome}\_control_lambda.bdg
+#   	rm ${sample_name}\_${replicate}\_${genome}\_peaks.narrowPeak
+#   	rm ${sample_name}\_${replicate}\_${genome}\_peaks.xls
+#   	rm ${sample_name}\_${replicate}\_${genome}\_summits.bed
+#   	rm ${sample_name}\_${replicate}\_${genome}\_treat_pileup.bdg
+#
+#   else
+#     echo "Error! Unrecognised read type. Should be either 'single' or 'paired'"
+#
+#   fi
+#
+#   echo "Copying bigwigs to public folder"
+#   cp *.bw ${public_dir}
+#   echo "Generating UCSC custom track:"
+#   echo "track type=bigWig name=\"${sample_name}_${replicate}_${genome}\" description=\"Calib.ChIP ${sample_name}_${replicate}_${genome}\" bigDataUrl=http://sara.molbiol.ox.ac.uk/public/egeorgia/RAPID-release/CalibratedChIP//${sample_name}_${replicate}_${genome}_downsampled.bw"
+#   echo ""
+#   echo ""
+#
+# done
+# cd ..
+#
+# echo "Copy and paste UCSC urls to view bigwigs in UCSC"
+# echo "If happy with replicates: merge replicate bams and create new bigwigs"
+# echo ""
+# echo "Cleaning up..."
+# # rm ./outputBams/*\_rmdup.bam
+# # rm ./outputBams/*\_rmdup.bam.bai
+# # rm ./outputBams/*\_downsampled.bam.bai
+# echo ""
 echo "RUN SUCCESSFUL!"
 end="$(date)"
 echo "Run finished : " "$end"
