@@ -81,7 +81,7 @@ else:
     sample_counts['RATIO_SPIKEIN_UNIQ'] = sample_counts['SPIKEIN_READS']/sample_counts['TOTAL_READS']
     sample_counts['RATIO_SPIKEINvGENOME'] = sample_counts['SPIKEIN_READS']/sample_counts['GENOME_READS']
     sample_counts['SPIKEIN_NORM'] = min(sample_counts['SPIKEIN_READS'])/sample_counts['SPIKEIN_READS'] 
-    sample_counts['DOWNSAMPLE_FACTOR'] = sample_counts['SPIKEIN_NORM']/max(new_merged['SPIKEIN_NORM'])*0.9999
+    sample_counts['DOWNSAMPLE_FACTOR'] = sample_counts['SPIKEIN_NORM']/max(sample_counts['SPIKEIN_NORM'])*0.9999
     sample_counts['READS_POST_DOWNSAMPLE'] = (sample_counts['GENOME_READS']*sample_counts['DOWNSAMPLE_FACTOR']).astype(int)
     
     # Export results to textfile
