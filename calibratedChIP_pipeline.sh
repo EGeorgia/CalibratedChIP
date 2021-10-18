@@ -43,6 +43,7 @@ module load ucsctools
 module load bowtie2
 module load samtools
 module load sambamba
+module load python-cbrg
 
 echo ""
 echo "CALIBRATED CHIP-SEQ"
@@ -54,107 +55,107 @@ echo ""
 # Uniquely mapped reads are sorted, indexed and PCR duplicates are removed
 # with sambamba. Number of reads aligning from each genome are counted.
 #---------------------------------------------------------------------------
-echo "---------------------------"
-echo "STEP 1"
-echo "---------------------------"
-echo "SAMPLE TOTAL_READS GENOME_READS SPIKEIN_READS" >> readCounts.txt
+# echo "---------------------------"
+# echo "STEP 1"
+# echo "---------------------------"
+# echo "SAMPLE TOTAL_READS GENOME_READS SPIKEIN_READS" >> readCounts.txt
 
-mkdir outputBams
+# mkdir outputBams
 
-for file in ${INPUT_FASTQS}
-do
-  columns=$(awk '{print NF}' $file | sort -nu | tail -n 1)
-  read_num=$(($columns-1))
+# for file in ${INPUT_FASTQS}
+# do
+#   columns=$(awk '{print NF}' $file | sort -nu | tail -n 1)
+#   read_num=$(($columns-1))
 
-  if [[ $read_num = "2" ]]; then
-    READ_TYPE="paired"
-    while IFS=$'\t' read -r sampleName READ1 READ2
-    do
-      SAMPLE="${sampleName}"
-      FASTQ1="${READ1}"
-      FASTQ2="${READ2}"
+#   if [[ $read_num = "2" ]]; then
+#     READ_TYPE="paired"
+#     while IFS=$'\t' read -r sampleName READ1 READ2
+#     do
+#       SAMPLE="${sampleName}"
+#       FASTQ1="${READ1}"
+#       FASTQ2="${READ2}"
 
-      echo "Processing sample: ${SAMPLE}."
-      echo ""
-      echo "FASTQ1 located here: ${FASTQ1}"
-      echo "FASTQ2 located here: ${FASTQ2}"
+#       echo "Processing sample: ${SAMPLE}."
+#       echo ""
+#       echo "FASTQ1 located here: ${FASTQ1}"
+#       echo "FASTQ2 located here: ${FASTQ2}"
 
-      echo ""
-      echo "Aligning to concatenated genome file..."
-      bowtie2 -x ${BT2DIR} -1 ${FASTQ1} -2 ${FASTQ2} -p 56 --no-mixed --no-discordant| grep -v XS: - | samtools view -b -h -S -F4 - > ./outputBams/${SAMPLE}\_UniqMapped.bam
-      sambamba sort  -t 56 -m 60G -o ./outputBams/${SAMPLE}\_UniqMapped_sorted.bam ./outputBams/${SAMPLE}\_UniqMapped.bam
-      sambamba markdup -r -t 56 ./outputBams/${SAMPLE}\_UniqMapped_sorted.bam ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam
-      echo "Extracting reads aligning uniquely to ${GENOME}"
-      samtools view -h ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam | grep -v ${SPIKEIN} | sed s/${GENOME}\_chr/chr/g | samtools view -bhS - > ./outputBams/${SAMPLE}\_${GENOME}.UniqMapped_sorted_rmdup.bam
-      echo "Extracting reads aligning uniquely to ${SPIKEIN}."
-      samtools view -h ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam | grep -v ${GENOME} | sed s/${SPIKEIN}\_chr/chr/g | samtools view -bhS - > ./outputBams/${SAMPLE}\_${SPIKEIN}.UniqMapped_sorted_rmdup.bam
+#       echo ""
+#       echo "Aligning to concatenated genome file..."
+#       bowtie2 -x ${BT2DIR} -1 ${FASTQ1} -2 ${FASTQ2} -p 56 --no-mixed --no-discordant| grep -v XS: - | samtools view -b -h -S -F4 - > ./outputBams/${SAMPLE}\_UniqMapped.bam
+#       sambamba sort  -t 56 -m 60G -o ./outputBams/${SAMPLE}\_UniqMapped_sorted.bam ./outputBams/${SAMPLE}\_UniqMapped.bam
+#       sambamba markdup -r -t 56 ./outputBams/${SAMPLE}\_UniqMapped_sorted.bam ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam
+#       echo "Extracting reads aligning uniquely to ${GENOME}"
+#       samtools view -h ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam | grep -v ${SPIKEIN} | sed s/${GENOME}\_chr/chr/g | samtools view -bhS - > ./outputBams/${SAMPLE}\_${GENOME}.UniqMapped_sorted_rmdup.bam
+#       echo "Extracting reads aligning uniquely to ${SPIKEIN}."
+#       samtools view -h ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam | grep -v ${GENOME} | sed s/${SPIKEIN}\_chr/chr/g | samtools view -bhS - > ./outputBams/${SAMPLE}\_${SPIKEIN}.UniqMapped_sorted_rmdup.bam
 
-      echo ""
-      echo "Indexing bam files..."
-      sambamba index -t 56 ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam
-      echo "${SAMPLE} is indexed"
-      sambamba index -t 56 ./outputBams/${SAMPLE}\_${GENOME}.UniqMapped_sorted_rmdup.bam
-      echo "${SAMPLE} for ${GENOME} is indexed"
-      sambamba index -t 56 ./outputBams/${SAMPLE}\_${SPIKEIN}.UniqMapped_sorted_rmdup.bam
-      echo "${SAMPLE} for ${SPIKEIN} is indexed"
+#       echo ""
+#       echo "Indexing bam files..."
+#       sambamba index -t 56 ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam
+#       echo "${SAMPLE} is indexed"
+#       sambamba index -t 56 ./outputBams/${SAMPLE}\_${GENOME}.UniqMapped_sorted_rmdup.bam
+#       echo "${SAMPLE} for ${GENOME} is indexed"
+#       sambamba index -t 56 ./outputBams/${SAMPLE}\_${SPIKEIN}.UniqMapped_sorted_rmdup.bam
+#       echo "${SAMPLE} for ${SPIKEIN} is indexed"
 
-      echo ""
-      echo "Counting reads in bam files..."
-      COUNT=$(sambamba view -c -t 56 ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam)
-      echo "Number of total uniquely aligning reads is ${COUNT}"
-      GENOMECOUNT=$(sambamba view -c -t 50 ./outputBams/${SAMPLE}\_${GENOME}.UniqMapped_sorted_rmdup.bam)
-      echo "Number of reads aligning to ${GENOME} is ${GENOMECOUNT}"
-      SPIKEGENOMECOUNT=$(sambamba view -c -t 50 ./outputBams/${SAMPLE}\_${SPIKEIN}.UniqMapped_sorted_rmdup.bam)
-      echo "Number of reads aligning to ${SPIKEIN} is ${SPIKEGENOMECOUNT}"
-      echo "${SAMPLE} ${COUNT} ${GENOMECOUNT} ${SPIKEGENOMECOUNT}" >> readCounts.txt
-      echo "---------------------------"
-    done < "${INPUT_FASTQS}"
+#       echo ""
+#       echo "Counting reads in bam files..."
+#       COUNT=$(sambamba view -c -t 56 ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam)
+#       echo "Number of total uniquely aligning reads is ${COUNT}"
+#       GENOMECOUNT=$(sambamba view -c -t 50 ./outputBams/${SAMPLE}\_${GENOME}.UniqMapped_sorted_rmdup.bam)
+#       echo "Number of reads aligning to ${GENOME} is ${GENOMECOUNT}"
+#       SPIKEGENOMECOUNT=$(sambamba view -c -t 50 ./outputBams/${SAMPLE}\_${SPIKEIN}.UniqMapped_sorted_rmdup.bam)
+#       echo "Number of reads aligning to ${SPIKEIN} is ${SPIKEGENOMECOUNT}"
+#       echo "${SAMPLE} ${COUNT} ${GENOMECOUNT} ${SPIKEGENOMECOUNT}" >> readCounts.txt
+#       echo "---------------------------"
+#     done < "${INPUT_FASTQS}"
 
-  elif [[ $read_num = "1" ]]; then
-    READ_TYPE="single"
-    while IFS=$'\t' read -r sampleName READ
-    do
-      SAMPLE="${sampleName}"
-      FASTQ="${READ}"
+#   elif [[ $read_num = "1" ]]; then
+#     READ_TYPE="single"
+#     while IFS=$'\t' read -r sampleName READ
+#     do
+#       SAMPLE="${sampleName}"
+#       FASTQ="${READ}"
 
-      echo "Processing sample: ${SAMPLE}."
-      echo ""
-      echo "FASTQ located here: ${FASTQ}"
-      echo ""
-      echo "Aligning to concatenated genome file..."
-      bowtie2 -x ${BT2DIR} -U ${FASTQ} -p 56 --no-mixed --no-discordant| grep -v XS: - | samtools view -b -h -S -F4 - > ./outputBams/${SAMPLE}\_UniqMapped.bam
-      sambamba sort  -t 56 -m 60G -o ./outputBams/${SAMPLE}\_UniqMapped_sorted.bam ./outputBams/${SAMPLE}\_UniqMapped.bam
-      sambamba markdup -r -t 56 ./outputBams/${SAMPLE}\_UniqMapped_sorted.bam ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam
-      echo "Extracting reads aligning uniquely to ${GENOME}"
-      samtools view -h ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam | grep -v ${SPIKEIN} | sed s/${GENOME}\_chr/chr/g | samtools view -bhS - > ./outputBams/${SAMPLE}\_${GENOME}.UniqMapped_sorted_rmdup.bam
-      echo "Extracting reads aligning uniquely to ${SPIKEIN}."
-      samtools view -h ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam | grep -v ${GENOME} | sed s/${SPIKEIN}\_chr/chr/g | samtools view -bhS - > ./outputBams/${SAMPLE}\_${SPIKEIN}.UniqMapped_sorted_rmdup.bam
+#       echo "Processing sample: ${SAMPLE}."
+#       echo ""
+#       echo "FASTQ located here: ${FASTQ}"
+#       echo ""
+#       echo "Aligning to concatenated genome file..."
+#       bowtie2 -x ${BT2DIR} -U ${FASTQ} -p 56 --no-mixed --no-discordant| grep -v XS: - | samtools view -b -h -S -F4 - > ./outputBams/${SAMPLE}\_UniqMapped.bam
+#       sambamba sort  -t 56 -m 60G -o ./outputBams/${SAMPLE}\_UniqMapped_sorted.bam ./outputBams/${SAMPLE}\_UniqMapped.bam
+#       sambamba markdup -r -t 56 ./outputBams/${SAMPLE}\_UniqMapped_sorted.bam ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam
+#       echo "Extracting reads aligning uniquely to ${GENOME}"
+#       samtools view -h ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam | grep -v ${SPIKEIN} | sed s/${GENOME}\_chr/chr/g | samtools view -bhS - > ./outputBams/${SAMPLE}\_${GENOME}.UniqMapped_sorted_rmdup.bam
+#       echo "Extracting reads aligning uniquely to ${SPIKEIN}."
+#       samtools view -h ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam | grep -v ${GENOME} | sed s/${SPIKEIN}\_chr/chr/g | samtools view -bhS - > ./outputBams/${SAMPLE}\_${SPIKEIN}.UniqMapped_sorted_rmdup.bam
 
-      echo ""
-      echo "Indexing bam files..."
-      sambamba index -t 56 ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam
-      echo "${SAMPLE} is indexed"
-      sambamba index -t 56 ./outputBams/${SAMPLE}\_${GENOME}.UniqMapped_sorted_rmdup.bam
-      echo "${SAMPLE} for ${GENOME} is indexed"
-      sambamba index -t 56 ./outputBams/${SAMPLE}\_${SPIKEIN}.UniqMapped_sorted_rmdup.bam
-      echo "${SAMPLE} for ${SPIKEIN} is indexed"
+#       echo ""
+#       echo "Indexing bam files..."
+#       sambamba index -t 56 ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam
+#       echo "${SAMPLE} is indexed"
+#       sambamba index -t 56 ./outputBams/${SAMPLE}\_${GENOME}.UniqMapped_sorted_rmdup.bam
+#       echo "${SAMPLE} for ${GENOME} is indexed"
+#       sambamba index -t 56 ./outputBams/${SAMPLE}\_${SPIKEIN}.UniqMapped_sorted_rmdup.bam
+#       echo "${SAMPLE} for ${SPIKEIN} is indexed"
 
-      echo ""
-      echo "Counting reads in bam files..."
-      COUNT=$(sambamba view -c -t 56 ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam)
-      echo "Number of total uniquely aligning reads is ${COUNT}"
-      GENOMECOUNT=$(sambamba view -c -t 50 ./outputBams/${SAMPLE}\_${GENOME}.UniqMapped_sorted_rmdup.bam)
-      echo "Number of reads aligning to ${GENOME} is ${GENOMECOUNT}"
-      SPIKEGENOMECOUNT=$(sambamba view -c -t 50 ./outputBams/${SAMPLE}\_${SPIKEIN}.UniqMapped_sorted_rmdup.bam)
-      echo "Number of reads aligning to ${SPIKEIN} is ${SPIKEGENOMECOUNT}"
-      echo "${SAMPLE} ${COUNT} ${GENOMECOUNT} ${SPIKEGENOMECOUNT}" >> readCounts.txt
-      echo "Written ${SAMPLE} read counts to ./readCounts.txt"
-      echo "---------------------------"
-    done < "${INPUT_FASTQS}"
-  else
-    echo "Error! paths_to_fastqs.txt file incorrectly formatted"
-  fi
-done
+#       echo ""
+#       echo "Counting reads in bam files..."
+#       COUNT=$(sambamba view -c -t 56 ./outputBams/${SAMPLE}\_UniqMapped_sorted_rmdup.bam)
+#       echo "Number of total uniquely aligning reads is ${COUNT}"
+#       GENOMECOUNT=$(sambamba view -c -t 50 ./outputBams/${SAMPLE}\_${GENOME}.UniqMapped_sorted_rmdup.bam)
+#       echo "Number of reads aligning to ${GENOME} is ${GENOMECOUNT}"
+#       SPIKEGENOMECOUNT=$(sambamba view -c -t 50 ./outputBams/${SAMPLE}\_${SPIKEIN}.UniqMapped_sorted_rmdup.bam)
+#       echo "Number of reads aligning to ${SPIKEIN} is ${SPIKEGENOMECOUNT}"
+#       echo "${SAMPLE} ${COUNT} ${GENOMECOUNT} ${SPIKEGENOMECOUNT}" >> readCounts.txt
+#       echo "Written ${SAMPLE} read counts to ./readCounts.txt"
+#       echo "---------------------------"
+#     done < "${INPUT_FASTQS}"
+#   else
+#     echo "Error! paths_to_fastqs.txt file incorrectly formatted"
+#   fi
+# done
 
 
 
@@ -178,20 +179,22 @@ echo ""
 echo "Proceeding with downsampling calculations..."
 
 # Need to specify whether input samples are included or not using -i.
-python ./downSampling_calc.py -i ${input_sample}
+python -i ${input_sample} ./downSampling_calc.py 
 
 echo "Running ./downSampling_calc.py to create downsamplingCalculations.txt"
 echo "Downsampling ratios calculated."
 
 DOWNSAMPLING="./downsamplingCalculations.txt"
 
-while IFS=$'\t' read -r REPLICATE SAMPLE_NAME TOTAL_READS GENOME_READS SPIKEIN_READS RATIO_MM39_UNIQ RATIO_hg38_UNIQ RATIO_HG38vMM39 HG38_NORM INPUT_RATIO DOWNSAMPLE_FRACTION DOWNSAMPLE_FACTOR READS_POST_DOWNSAMPLE
+#TODO: Need to modify this for input sample example:
+while IFS=$'\t' read -r REPLICATE SAMPLE TOTAL_READS GENOME_READS SPIKEIN_READS RATIO_GENOME_UNIQ RATIO_SPIKEIN_UNIQ RATIO_SPIKEINvGENOME SPIKEIN_NORM DOWNSAMPLE_FACTOR READS_POST_DOWNSAMPLE
 do
   downsample_factor="${DOWNSAMPLE_FACTOR}"
-  sample_name="${SAMPLE_NAME}"
+  sample_name="${REPLICATE}"
 
   echo ""
   echo "Creating downsampled bam for ${sample_name} in ${GENOME} genome"
+  echo "downsample factor is ${downsample_factor}"
   sambamba view -h -t 56 -f bam --subsampling-seed=123 -s ${downsample_factor} ./outputBams/${sample_name}\_${GENOME}.UniqMapped_sorted_rmdup.bam -o ./outputBams/${sample_name}\_${GENOME}\_downsampled.bam
   echo "Indexing downsampled bam..."
   sambamba index -t 56 ./outputBams/${sample_name}\_${GENOME}\_downsampled.bam
@@ -212,63 +215,68 @@ done < "${DOWNSAMPLING}"
 echo ""
 echo "Downsampling complete!"
 
-# #---------------------------------------------------------------------------
-# # Step 3:
-# # Convert downsampled bams to bigwigs and view in UCSC.
-# #---------------------------------------------------------------------------
-# echo "---------------------------"
-# echo "STEP 3"
-# echo "---------------------------"
-# echo "Creating downsampled bigwigs for each sample..."
-# echo ""
-# cd outputBams
-# for bamfile in *_downsampled.bam
-# do
-#   IFS="\_" read -r  chip celltype condition genome type  <<< "$bamfile"
-#   sample_name="${chip}_${celltype}"
-#   replicate="${condition}"
-#   genome="${genome}"
-#   type="${type}"
-#   echo "Sample: ${sample_name}_${replicate}_${genome}"
-#   if [[ $READ_TYPE = "single" ]]; then
-#     echo "Analysing single-end reads."
-#     macs2 pileup -i ${bamfile} -f BAM -o ${sample_name}\_${replicate}\_${genome}\_downsampled.bg
-#     wigToBigWig -clip ${sample_name}\_${replicate}\_${genome}\_downsampled.bg ${BT2DIR}${genome}.chrom.sizes ${sample_name}\_${replicate}\_${genome}\_downsampled.bw
-#     rm ${sample_name}\_${replicate}\_${genome}\_downsampled.bg
-#
-#   elif [[ $READ_TYPE = "paired" ]];then
-#     echo "Analysing paired-end reads."
-#     macs2 callpeak -t ${bamfile} -f BAMPE -g mm --bdg -n ${sample_name}\_${replicate}\_${genome}
-#     wigToBigWig -clip ${sample_name}\_treat_pileup.bdg ${BT2DIR}${genome}.chrom.sizes >  ${sample_name}\_${replicate}\_${genome}\_downsampled.bw
-#   	rm ${sample_name}\_${replicate}\_${genome}\_control_lambda.bdg
-#   	rm ${sample_name}\_${replicate}\_${genome}\_peaks.narrowPeak
-#   	rm ${sample_name}\_${replicate}\_${genome}\_peaks.xls
-#   	rm ${sample_name}\_${replicate}\_${genome}\_summits.bed
-#   	rm ${sample_name}\_${replicate}\_${genome}\_treat_pileup.bdg
-#
-#   else
-#     echo "Error! Unrecognised read type. Should be either 'single' or 'paired'"
-#
-#   fi
-#
-#   echo "Copying bigwigs to public folder"
-#   cp *.bw ${public_dir}
-#   echo "Generating UCSC custom track:"
-#   echo "track type=bigWig name=\"${sample_name}_${replicate}_${genome}\" description=\"Calib.ChIP ${sample_name}_${replicate}_${genome}\" bigDataUrl=http://sara.molbiol.ox.ac.uk/public/egeorgia/RAPID-release/CalibratedChIP//${sample_name}_${replicate}_${genome}_downsampled.bw"
-#   echo ""
-#   echo ""
-#
-# done
-# cd ..
-#
-# echo "Copy and paste UCSC urls to view bigwigs in UCSC"
-# echo "If happy with replicates: merge replicate bams and create new bigwigs"
-# echo ""
-# echo "Cleaning up..."
-# # rm ./outputBams/*\_rmdup.bam
-# # rm ./outputBams/*\_rmdup.bam.bai
-# # rm ./outputBams/*\_downsampled.bam.bai
-# echo ""
+#---------------------------------------------------------------------------
+# Step 3:
+# Convert downsampled bams to bigwigs and view in UCSC.
+#---------------------------------------------------------------------------
+echo "---------------------------"
+echo "STEP 3"
+echo "---------------------------"
+echo "Creating downsampled bigwigs for each sample..."
+echo ""
+cd outputBams
+
+# Need to remove this in future!
+READ_TYPE="paired" 
+
+
+for bamfile in *_downsampled.bam
+do
+  IFS="\_" read -r  chip celltype condition genome type  <<< "$bamfile"
+  sample_name="${chip}_${celltype}"
+  replicate="${condition}"
+  genome="${genome}"
+  type="${type}"
+  echo "Sample: ${sample_name}_${replicate}_${genome}"
+  if [[ $READ_TYPE = "single" ]]; then
+    echo "Analysing single-end reads."
+    macs2 pileup -i ${bamfile} -f BAM -o ${sample_name}\_${replicate}\_${genome}\_downsampled.bg
+    wigToBigWig -clip ${sample_name}\_${replicate}\_${genome}\_downsampled.bg ${BT2DIR}${genome}.chrom.sizes ${sample_name}\_${replicate}\_${genome}\_downsampled.bw
+    rm ${sample_name}\_${replicate}\_${genome}\_downsampled.bg
+
+  elif [[ $READ_TYPE = "paired" ]];then
+    echo "Analysing paired-end reads."
+    macs2 callpeak -t ${bamfile} -f BAMPE -g mm --bdg -n ${sample_name}\_${replicate}\_${genome}
+    wigToBigWig -clip ${sample_name}\_treat_pileup.bdg ${BT2DIR}${genome}.chrom.sizes >  ${sample_name}\_${replicate}\_${genome}\_downsampled.bw
+  	rm ${sample_name}\_${replicate}\_${genome}\_control_lambda.bdg
+  	rm ${sample_name}\_${replicate}\_${genome}\_peaks.narrowPeak
+  	rm ${sample_name}\_${replicate}\_${genome}\_peaks.xls
+  	rm ${sample_name}\_${replicate}\_${genome}\_summits.bed
+  	rm ${sample_name}\_${replicate}\_${genome}\_treat_pileup.bdg
+
+  else
+    echo "Error! Unrecognised read type. Should be either 'single' or 'paired'"
+
+  fi
+
+  echo "Copying bigwigs to public folder"
+  cp *.bw ${public_dir}
+  echo "Generating UCSC custom track:"
+  echo "track type=bigWig name=\"${sample_name}_${replicate}_${genome}\" description=\"Calib.ChIP ${sample_name}_${replicate}_${genome}\" bigDataUrl=http://sara.molbiol.ox.ac.uk/public/egeorgia/RAPID-release/CalibratedChIP//${sample_name}_${replicate}_${genome}_downsampled.bw"
+  echo ""
+  echo ""
+
+done
+cd ..
+
+echo "Copy and paste UCSC urls to view bigwigs in UCSC"
+echo "If happy with replicates: merge replicate bams and create new bigwigs"
+echo ""
+echo "Cleaning up..."
+# rm ./outputBams/*\_rmdup.bam
+# rm ./outputBams/*\_rmdup.bam.bai
+# rm ./outputBams/*\_downsampled.bam.bai
+echo ""
 echo "RUN SUCCESSFUL!"
 end="$(date)"
 echo "Run finished : " "$end"

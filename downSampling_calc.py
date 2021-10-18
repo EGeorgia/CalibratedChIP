@@ -20,7 +20,7 @@ args = parser.parse_args()
 warnings.filterwarnings('ignore')
 
 # Load the textfile containing read counts:
-read_counts = pd.read_csv('/t1-data/project/fgenomics/egeorgia/Data/myData/ChIP-seq/2020-03-19_HEK293_RAPID-release_calibratedChIP/Analysis/readCounts.txt', sep=' ')
+read_counts = pd.read_csv('./readCounts.txt', sep=' ')
 
 # Load the textfile containing read counts:
 rep = []
@@ -77,6 +77,7 @@ if args.inputs == 'yes':
 else:
     print("Proceeding with no input normalisation")
     # Calculate ratios:
+    sample_counts = read_counts[read_counts['SAMPLE'] != "input"]
     sample_counts['RATIO_GENOME_UNIQ'] = (sample_counts['GENOME_READS'])/(sample_counts['TOTAL_READS'])
     sample_counts['RATIO_SPIKEIN_UNIQ'] = sample_counts['SPIKEIN_READS']/sample_counts['TOTAL_READS']
     sample_counts['RATIO_SPIKEINvGENOME'] = sample_counts['SPIKEIN_READS']/sample_counts['GENOME_READS']
