@@ -1,0 +1,28 @@
+ruleorder:
+    uniqAlignGen > uniqAlignSpi > indexing_genome > indexing_spikein > counting_gen > counting_spi
+
+# Allows snakemake to run rules on all files in this directory:
+IDS, = glob_wildcards("data/samples/{id}.fastq.gz")
+
+rule all: # contains all final outputs as inputs
+    input:
+        #expand("data/outputFiles/{sample}_readcount.txt",sample=config["samples"]),
+        expand("data/outputFiles/{sample}_{spikein}_readcount.txt",sample=config["samples"],spikein=config["spikein"]),
+        expand("data/outputFiles/{sample}_{genome}_readcount.txt",sample=config["samples"], genome=config["genome"])
+        #expand("data/outputFiles/ALLreadcount_{sample}.txt",sample=config["samples"])
+        
+        
+rule counting:
+    input:
+         "data/outputBams/{sample}_UniqMapped_sorted_rmdup.bam",
+         "data/outputBams/{sample}_UniqMapped_sorted_rmdup_{spikein}.bam",
+         "data/outputBams/{sample}_UniqMapped_sorted_rmdup_{genome}.bam"
+    output:
+         "data/outputFiles/ALLreadcount.txt"
+#    run:
+#         for file in input:
+#             echo "$file"
+#             count=$(sambamba view -c -t 50 file)
+#             with open(output, "w") as out:
+#                 out.write($count)
+#                 "echo $count > {output}"

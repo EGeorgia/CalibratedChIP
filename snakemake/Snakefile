@@ -6,10 +6,12 @@ October 2021
 """
 
 configfile: "config.yaml"
+
 ruleorder:
     uniqAlignGen > uniqAlignSpi > indexing_genome > indexing_spikein > counting_gen > counting_spi
 
-#IDS, = glob_wildcards("data/outputBams/{id}.bam")
+# Allows snakemake to run rules on all files in this directory:
+IDS, = glob_wildcards("data/outputBams/{id}.bam")
 
 rule all: # contains all final outputs as inputs
     input:
@@ -17,7 +19,7 @@ rule all: # contains all final outputs as inputs
         expand("data/outputFiles/{sample}_{spikein}_readcount.txt",sample=config["samples"],spikein=config["spikein"]),
         expand("data/outputFiles/{sample}_{genome}_readcount.txt",sample=config["samples"], genome=config["genome"])
         #expand("data/outputFiles/ALLreadcount_{sample}.txt",sample=config["samples"])
-
+        
 rule bamming:
     input:
         READ1="data/samples/{sample}_R1.fastq.gz",
@@ -101,20 +103,6 @@ rule indexing_spikein:
     shell:
         "sambamba index -t 56 {input}"
 
-rule counting:
-    input:
-         "data/outputBams/{sample}_UniqMapped_sorted_rmdup.bam",
-         "data/outputBams/{sample}_UniqMapped_sorted_rmdup_{spikein}.bam",
-         "data/outputBams/{sample}_UniqMapped_sorted_rmdup_{genome}.bam"
-    output:
-         "data/outputFiles/ALLreadcount.txt"
-#    run:
-#         for file in input:
-#             echo "$file"
-#             count=$(sambamba view -c -t 50 file)
-#             with open(output, "w") as out:
-#                 out.write($count)
-#                 "echo $count > {output}"
 
 rule counting_gen:
     input:
