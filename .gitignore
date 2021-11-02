@@ -22,3 +22,9 @@ ENV/
 # OS generated files 
 .DS_Store?
 ._*
+
+# Slurm stuff
+*sps*
+*.out
+*.err
+*jobscript*

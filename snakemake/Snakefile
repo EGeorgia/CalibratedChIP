@@ -15,11 +15,9 @@ IDS, = glob_wildcards("data/outputBams/{id}.bam")
 
 rule all: # contains all final outputs as inputs
     input:
-        #expand("data/outputFiles/{sample}_readcount.txt",sample=config["samples"]),
         expand("data/outputFiles/{sample}_{spikein}_readcount.txt",sample=config["samples"],spikein=config["spikein"]),
         expand("data/outputFiles/{sample}_{genome}_readcount.txt",sample=config["samples"], genome=config["genome"])
-        #expand("data/outputFiles/ALLreadcount_{sample}.txt",sample=config["samples"])
-        
+       
 rule bamming:
     input:
         READ1="data/samples/{sample}_R1.fastq.gz",
@@ -31,9 +29,9 @@ rule bamming:
     conda:
         "envs/mapping.yaml"
     shell:
-        "bowtie2 -x data/bowtie2/{params.bt2} -1 {input.READ1} -2 {input.READ2} -p 56 --no-mixed --no-discordant |"
+        "bowtie2 -x data/Bowtie2/{params.bt2} -1 {input.READ1} -2 {input.READ2} -p 56 --no-mixed --no-discordant |"
         "grep -v XS: - |"
-        "samtools view -b -h -S -F4 > {output}"
+        "samtools view -b -h -S -F4 - > {output}"
 
 rule sorting:
     input:

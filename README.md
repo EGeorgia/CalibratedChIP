@@ -51,12 +51,12 @@ They can be downloaded from UCSC e.g. [hg19.chrom.sizes](https://hgdownload.soe.
 ***
 
 ### SUMMARY
-You should have a new directory containing the following:
+You should have a new directory containing the following (can sym link to scripts):
 * paths_to_fastqs.txt
 * downSampling_calc.py
 * calibratedChIP_pipeline.sh
 
-Run: ```$ bash calibratedChIP_pipeline.sh -g genome -s spike-in genome -b bt2_dir -p path/public_dir```
+Run: ```$ bash calibratedChIP_pipeline.sh -g genome -s spike-in genome -b bt2_dir -i yes/no -p path/public_dir```
 
 For help see: ```$ bash -h calibratedChIP_pipeline.sh```
 
